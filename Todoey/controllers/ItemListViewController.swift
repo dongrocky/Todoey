@@ -7,13 +7,12 @@
 //
 
 import UIKit
+import CoreData
 
 class ItemListViewController: UITableViewController {
     
-    private var items: [Item] = [
-        Item(title: "first", done: true),
-        Item(title: "second")
-    ]
+    private var items: [Item] = []
+    private let coreDataContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     private var addAction: UIAlertAction?
 
@@ -27,6 +26,7 @@ class ItemListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let item = items[indexPath.row]
         item.done = !item.done
+        saveItems()
         tableView.reloadRows(at: [indexPath], with: .automatic)
     }
     
@@ -56,7 +56,9 @@ class ItemListViewController: UITableViewController {
         }
         addAction = UIAlertAction(title: "Add", style: .default) { [weak self] action in
             guard let strongSelf = self else { return }
-            let item = Item(title:textField.text!)
+            let item = Item(context: strongSelf.coreDataContext)
+            item.title = textField.text!
+            item.done = false
             strongSelf.items.append(item)
             strongSelf.saveItems()
             strongSelf.tableView.reloadData()
@@ -80,11 +82,20 @@ class ItemListViewController: UITableViewController {
     }
     
     func saveItems() {
-        
+        do {
+            try coreDataContext.save()
+        } catch {
+            NSLog("Error saving item list into core data")
+        }
     }
     
     func loadItems() {
-        
+        let request: NSFetchRequest<Item> = Item.fetchRequest()
+        do {
+            items = try coreDataContext.fetch(request)
+        } catch {
+            NSLog("Failed to load item list from the core data")
+        }
     }
 }
 
