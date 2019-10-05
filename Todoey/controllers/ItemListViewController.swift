@@ -19,10 +19,10 @@ class ItemListViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+        loadItems()
     }
 
-    // MARK - UITableViewDelegate
+    // MARK: - UITableViewDelegate
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let item = items[indexPath.row]
@@ -30,7 +30,7 @@ class ItemListViewController: UITableViewController {
         tableView.reloadRows(at: [indexPath], with: .automatic)
     }
     
-    // MARK - UITableViewDataSource
+    // MARK: - UITableViewDataSource
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return items.count
@@ -44,7 +44,7 @@ class ItemListViewController: UITableViewController {
         return cell
     }
     
-    // Mark - Add new items
+    // MARK: - Add new items
     
     @IBAction func didTapAddItem(_ sender: UIBarButtonItem) {
         let alertView = UIAlertController(title: "Add Todo Item", message: "", preferredStyle: .alert)
@@ -55,9 +55,11 @@ class ItemListViewController: UITableViewController {
             textField.addTarget(self, action: #selector(ItemListViewController.textFieldDidChange), for: .editingChanged)
         }
         addAction = UIAlertAction(title: "Add", style: .default) { [weak self] action in
+            guard let strongSelf = self else { return }
             let item = Item(title:textField.text!)
-            self?.items.append(item)
-            self?.tableView.reloadData()
+            strongSelf.items.append(item)
+            strongSelf.saveItems()
+            strongSelf.tableView.reloadData()
         }
         
         guard let addAction = addAction else {
@@ -68,11 +70,21 @@ class ItemListViewController: UITableViewController {
         present(alertView, animated: true)
     }
     
+    // MARK: - Private
+    
     @objc func textFieldDidChange(sender: UITextField) {
         guard let length = sender.text?.count else {
             return
         }
         addAction?.isEnabled = length > 0
+    }
+    
+    func saveItems() {
+        
+    }
+    
+    func loadItems() {
+        
     }
 }
 
