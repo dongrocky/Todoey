@@ -26,6 +26,10 @@ class ItemListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let item = items[indexPath.row]
         item.done = !item.done
+        
+        // delte item instead
+//        coreDataContext.delete(item)
+//        items.remove(at: indexPath.row)
         saveItems()
         tableView.reloadRows(at: [indexPath], with: .automatic)
     }
