@@ -10,7 +10,10 @@ import UIKit
 
 class ItemListViewController: UITableViewController {
     
-    private var items = ["bug grocery", "send money to Joel"]
+    private var items: [Item] = [
+        Item(title: "first", done: true),
+        Item(title: "second")
+    ]
     
     private var addAction: UIAlertAction?
 
@@ -21,6 +24,11 @@ class ItemListViewController: UITableViewController {
 
     // MARK - UITableViewDelegate
     
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let item = items[indexPath.row]
+        item.done = !item.done
+        tableView.reloadRows(at: [indexPath], with: .automatic)
+    }
     
     // MARK - UITableViewDataSource
     
@@ -30,7 +38,9 @@ class ItemListViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ItemCell", for: indexPath)
-        cell.textLabel?.text = items[indexPath.row]
+        let item = items[indexPath.row]
+        cell.textLabel?.text = item.title
+        cell.accessoryType = item.done ? .checkmark : .none
         return cell
     }
     
@@ -45,7 +55,8 @@ class ItemListViewController: UITableViewController {
             textField.addTarget(self, action: #selector(ItemListViewController.textFieldDidChange), for: .editingChanged)
         }
         addAction = UIAlertAction(title: "Add", style: .default) { [weak self] action in
-            self?.items.append(textField.text!)
+            let item = Item(title:textField.text!)
+            self?.items.append(item)
             self?.tableView.reloadData()
         }
         

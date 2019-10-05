@@ -9,6 +9,11 @@
 import Foundation
 
 class Item {
-    var title: String = ""
-    var done: Bool = false
+    var title: String
+    var done: Bool
+    
+    init(title: String = "", done: Bool = false) {
+        self.title = title
+        self.done = done
+    }
 }
