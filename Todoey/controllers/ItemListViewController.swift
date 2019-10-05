@@ -10,16 +10,16 @@ import UIKit
 
 class ItemListViewController: UITableViewController {
     
-    private var items: [Item] = [
-        Item(title: "first", done: true),
-        Item(title: "second")
-    ]
+    private var items: [Item] = []
     
+    private let encoder = PropertyListEncoder()
+    private let decoder = PropertyListDecoder()
+    private let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     private var addAction: UIAlertAction?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+        loadItems()
     }
 
     // MARK - UITableViewDelegate
@@ -56,7 +56,9 @@ class ItemListViewController: UITableViewController {
         }
         addAction = UIAlertAction(title: "Add", style: .default) { [weak self] action in
             let item = Item(title:textField.text!)
-            self?.items.append(item)
+            guard let strongSelf = self else { return }
+            strongSelf.items.append(item)
+            strongSelf.saveItems()
             self?.tableView.reloadData()
         }
         
@@ -73,6 +75,30 @@ class ItemListViewController: UITableViewController {
             return
         }
         addAction?.isEnabled = length > 0
+    }
+    
+    func saveItems() {
+        do {
+            let encoded = try encoder.encode(items)
+            if let filePath = dataFilePath {
+                try encoded.write(to: filePath)
+            }
+        } catch {
+            print("Error encoding items list.")
+        }
+    }
+    
+    func loadItems() {
+        guard let filePath = dataFilePath else {
+            NSLog("Failed to get the plist file url.")
+            return
+        }
+        do {
+            let encoded = try Data(contentsOf: filePath)
+            items = try decoder.decode([Item].self, from: encoded)
+        } catch {
+            NSLog("Failed to decode items array list.")
+        }
     }
 }
 
