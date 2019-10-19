@@ -37,15 +37,17 @@ class CategoryViewController: UITableViewController {
     // MARK: - Navigation bar
     
     @IBAction func didTapAddButton(_ sender: UIBarButtonItem) {
+        var textField = UITextField()
         let alertView = UIAlertController(title: "Add new category", message: "", preferredStyle: .alert)
         alertView.addTextField { (textFieldAdded) in
-            let textField = textFieldAdded
+            textField = textFieldAdded
             textField.placeholder = "Write a category name"
             textField.addTarget(self, action: #selector(CategoryViewController.textFieldDidChange), for: .editingChanged)
         }
         addAction = UIAlertAction(title: "Add", style: .default, handler: { [weak self] (action) in
             guard let strongSelf = self else { return }
             let category = Category(context: strongSelf.coreDataContext)
+            category.name = textField.text!
             strongSelf.categories.append(category)
             strongSelf.saveCategories()
             strongSelf.tableView.reloadData()
