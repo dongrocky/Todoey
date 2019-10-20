@@ -11,6 +11,11 @@ import CoreData
 
 class ItemListViewController: UITableViewController {
     
+    var selectedCategory : Category? {
+        didSet {
+            loadItems()
+        }
+    }
     private var items: [Item] = []
     private let coreDataContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
@@ -63,6 +68,7 @@ class ItemListViewController: UITableViewController {
             let item = Item(context: strongSelf.coreDataContext)
             item.title = textField.text!
             item.done = false
+            item.parent = strongSelf.selectedCategory
             strongSelf.items.append(item)
             strongSelf.saveItems()
             strongSelf.tableView.reloadData()
@@ -93,28 +99,34 @@ class ItemListViewController: UITableViewController {
         }
     }
     
-    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest()) {
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
+        guard let categoryName = selectedCategory?.name else { return }
+        let categoryPredicate = NSPredicate(format: "parent.name MATCHES %@", categoryName)
+        request.predicate = categoryPredicate
+        if let predicate = predicate {
+            let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [predicate, categoryPredicate])
+            request.predicate = compoundPredicate
+        }
         do {
             items = try coreDataContext.fetch(request)
         } catch {
             NSLog("Failed to load item list from the core data")
         }
+        tableView.reloadData()
     }
 }
 
 extension ItemListViewController: UISearchBarDelegate {
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         let request: NSFetchRequest<Item> = Item.fetchRequest()
-        request.predicate = NSPredicate(format: "title CONTAINS %@", searchBar.text!)
+        let predicate = NSPredicate(format: "title CONTAINS %@", searchBar.text!)
         request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-        loadItems(with: request)
-        tableView.reloadData()
+        loadItems(with: request, predicate: predicate)
     }
     
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         guard searchBar.text?.count == 0 else { return }
         loadItems()
-        tableView.reloadData()
         DispatchQueue.main.async {
             searchBar.resignFirstResponder()
         }
