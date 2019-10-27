@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 class ItemListViewController: UITableViewController {
     
@@ -16,8 +16,8 @@ class ItemListViewController: UITableViewController {
             loadItems()
         }
     }
-    private var items: [Item] = []
-    private let coreDataContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    private var items: Results<Item>?
+    private let realm = try! Realm()
     
     private var addAction: UIAlertAction?
 
@@ -29,27 +29,28 @@ class ItemListViewController: UITableViewController {
     // MARK: - UITableViewDelegate
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let item = items[indexPath.row]
+        guard let item = items?[indexPath.row] else { return }
         item.done = !item.done
         
         // delte item instead
 //        coreDataContext.delete(item)
 //        items.remove(at: indexPath.row)
-        saveItems()
+        save(item: item)
         tableView.reloadRows(at: [indexPath], with: .automatic)
     }
     
     // MARK: - UITableViewDataSource
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return items.count
+        return items?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ItemCell", for: indexPath)
-        let item = items[indexPath.row]
-        cell.textLabel?.text = item.title
-        cell.accessoryType = item.done ? .checkmark : .none
+        let item = items?[indexPath.row]
+        cell.textLabel?.text = item?.title ?? "No items has been added"
+        let done = item?.done ?? false
+        cell.accessoryType = done ? .checkmark : .none
         return cell
     }
     
@@ -65,12 +66,16 @@ class ItemListViewController: UITableViewController {
         }
         addAction = UIAlertAction(title: "Add", style: .default) { [weak self] action in
             guard let strongSelf = self else { return }
-            let item = Item(context: strongSelf.coreDataContext)
-            item.title = textField.text!
-            item.done = false
-            item.parent = strongSelf.selectedCategory
-            strongSelf.items.append(item)
-            strongSelf.saveItems()
+            
+            do {
+                try strongSelf.realm.write {
+                    let item = Item()
+                    item.title = textField.text!
+                    strongSelf.selectedCategory?.items.append(item)
+                }
+            } catch {
+                NSLog("Error saving new items")
+            }
             strongSelf.tableView.reloadData()
         }
         
@@ -91,44 +96,35 @@ class ItemListViewController: UITableViewController {
         addAction?.isEnabled = length > 0
     }
     
-    func saveItems() {
+    func save(item: Item) {
         do {
-            try coreDataContext.save()
+            try realm.write {
+                realm.add(item)
+            }
         } catch {
-            NSLog("Error saving item list into core data")
+            NSLog("Fail to save item")
         }
     }
     
-    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
-        guard let categoryName = selectedCategory?.name else { return }
-        let categoryPredicate = NSPredicate(format: "parent.name MATCHES %@", categoryName)
-        request.predicate = categoryPredicate
-        if let predicate = predicate {
-            let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [predicate, categoryPredicate])
-            request.predicate = compoundPredicate
-        }
-        do {
-            items = try coreDataContext.fetch(request)
-        } catch {
-            NSLog("Failed to load item list from the core data")
-        }
+    func loadItems() {
+        items = selectedCategory?.items.sorted(byKeyPath: "title", ascending: true)
         tableView.reloadData()
     }
 }
 
 extension ItemListViewController: UISearchBarDelegate {
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        let request: NSFetchRequest<Item> = Item.fetchRequest()
-        let predicate = NSPredicate(format: "title CONTAINS %@", searchBar.text!)
-        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-        loadItems(with: request, predicate: predicate)
-    }
-    
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        guard searchBar.text?.count == 0 else { return }
-        loadItems()
-        DispatchQueue.main.async {
-            searchBar.resignFirstResponder()
-        }
-    }
+//    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+//        let request: NSFetchRequest<Item> = Item.fetchRequest()
+//        let predicate = NSPredicate(format: "title CONTAINS %@", searchBar.text!)
+//        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+//        loadItems(with: request, predicate: predicate)
+//    }
+//
+//    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+//        guard searchBar.text?.count == 0 else { return }
+//        loadItems()
+//        DispatchQueue.main.async {
+//            searchBar.resignFirstResponder()
+//        }
+//    }
 }
