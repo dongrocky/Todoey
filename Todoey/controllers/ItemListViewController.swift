@@ -21,22 +21,21 @@ class ItemListViewController: UITableViewController {
     
     private var addAction: UIAlertAction?
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        loadItems()
-    }
-
     // MARK: - UITableViewDelegate
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard let item = items?[indexPath.row] else { return }
-        item.done = !item.done
         
         // delte item instead
-//        coreDataContext.delete(item)
-//        items.remove(at: indexPath.row)
-        save(item: item)
-        tableView.reloadRows(at: [indexPath], with: .automatic)
+        do {
+            try realm.write {
+                realm.delete(item)
+//                item.done = !item.done
+            }
+        } catch {
+            NSLog("Failed to toggle item")
+        }
+        tableView.reloadData()
     }
     
     // MARK: - UITableViewDataSource
@@ -94,16 +93,6 @@ class ItemListViewController: UITableViewController {
             return
         }
         addAction?.isEnabled = length > 0
-    }
-    
-    func save(item: Item) {
-        do {
-            try realm.write {
-                realm.add(item)
-            }
-        } catch {
-            NSLog("Fail to save item")
-        }
     }
     
     func loadItems() {
