@@ -29,8 +29,8 @@ class ItemListViewController: UITableViewController {
         // delte item instead
         do {
             try realm.write {
-                realm.delete(item)
-//                item.done = !item.done
+//                realm.delete(item)
+                item.done = !item.done
             }
         } catch {
             NSLog("Failed to toggle item")
@@ -102,18 +102,20 @@ class ItemListViewController: UITableViewController {
 }
 
 extension ItemListViewController: UISearchBarDelegate {
-//    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        items = items?.filter("title CONTAINS[cd] %@", searchBar.text!).sorted(byKeyPath: "title", ascending: true);
 //        let request: NSFetchRequest<Item> = Item.fetchRequest()
 //        let predicate = NSPredicate(format: "title CONTAINS %@", searchBar.text!)
 //        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
 //        loadItems(with: request, predicate: predicate)
-//    }
-//
-//    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//        guard searchBar.text?.count == 0 else { return }
-//        loadItems()
-//        DispatchQueue.main.async {
-//            searchBar.resignFirstResponder()
-//        }
-//    }
+        tableView.reloadData()
+    }
+
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        guard searchBar.text?.count == 0 else { return }
+        loadItems()
+        DispatchQueue.main.async {
+            searchBar.resignFirstResponder()
+        }
+    }
 }
