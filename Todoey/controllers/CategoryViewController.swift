@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import SwipeCellKit
 
 class CategoryViewController: UITableViewController {
     
@@ -18,6 +19,7 @@ class CategoryViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         loadCategories()
+        tableView.rowHeight = 80.0
     }
 
     // MARK: - Table view data source
@@ -28,9 +30,10 @@ class CategoryViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
+        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath) as! SwipeTableViewCell
         let category = categories?[indexPath.row]
         cell.textLabel?.text = category?.name ?? "No categories created"
+        cell.delegate = self
         return cell
     }
     
@@ -86,5 +89,45 @@ class CategoryViewController: UITableViewController {
         } catch {
             NSLog("Failed to save categories")
         }
+    }
+}
+
+// MARK: - Swipe cell delegate methods
+
+extension CategoryViewController: SwipeTableViewCellDelegate {
+    func tableView(
+        _ tableView: UITableView,
+        editActionsForRowAt indexPath: IndexPath,
+        for orientation: SwipeActionsOrientation
+    ) -> [SwipeAction]? {
+        guard orientation == .right else { return nil }
+        let deleteAction = SwipeAction(style: .destructive, title: "Delete") {
+            [weak self] action, indexPath in
+            NSLog("Delete item")
+            guard let totalCategories = self?.categories?.count,
+                  indexPath.row < totalCategories else { return }
+            guard let categoryToDelete = self?.categories?[indexPath.row] else { return }
+            do {
+                try self?.realm.write {
+                    self?.realm.delete(categoryToDelete.items)
+                    self?.realm.delete(categoryToDelete)
+                }
+            } catch {
+                NSLog("Failed to delete category: \(categoryToDelete.name)")
+            }
+            self?.tableView.reloadData()
+        }
+        
+        // customize the action appearance
+        deleteAction.image = UIImage(named: "delete-icon")
+        
+        return [deleteAction]
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, editActionsOptionsForItemAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> SwipeOptions {
+        var options = SwipeOptions()
+        options.expansionStyle = .destructive
+//        options.transitionStyle = .border
+        return options
     }
 }
